@@ -13,8 +13,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -35,54 +40,66 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun RegistroIncidenciasApp() {
+    // Basic state setup so the text fields are interactive
+    var titulo by remember { mutableStateOf("") }
+    var descripcion by remember { mutableStateOf("") }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Título propio relacionado al entorno
+        // Título
         Text(
-            text = "Gestión de Centro de Cómputo",
+            text = "Registro de incidencia",
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(12.dp))
 
-        // Texto descriptivo actualizado
+        // Instrucción breve
         Text(
-            text = "Administra el estado de las computadoras, reporta fallas de hardware y organiza el mantenimiento del laboratorio informático.",
+            text = "Completa los datos básicos del reporte.",
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(24.dp))
 
+        // Título de incidencia
+        OutlinedTextField(
+            value = titulo,
+            onValueChange = { titulo = it },
+            label = { Text("Título") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Descripción
+        OutlinedTextField(
+            value = descripcion,
+            onValueChange = { descripcion = it },
+            label = { Text("Descripción") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Acción principal
+        Button(
+            onClick = { /* Funcionalidad a implementar en semanas posteriores */ },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = "Crear reporte")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Estado inicial
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
-                // Título de la tarjeta modificado
                 Text(
-                    text = "Estado del Sistema",
-                    style = MaterialTheme.typography.titleMedium
+                    text = "Aún no hay una incidencia registrada",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
-                // Mensaje interno de la tarjeta modificado
-                Text(text = "No hay fallas de hardware activas en los equipos.")
             }
         }
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Texto del botón modificado
-        Button(onClick = { /* Se implementará en una unidad posterior */ }) {
-            Text(text = "Registrar Mantenimiento")
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Segunda línea de texto para identificar la versión
-        Text(
-            text = "Prototipo inicial — Unidad 1",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
