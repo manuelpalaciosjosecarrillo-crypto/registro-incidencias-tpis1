@@ -24,10 +24,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import sv.edu.utec.etps1.registroincidencias.ui.theme.RegistroIncidenciasTheme
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,11 +48,19 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun RegistroIncidenciasApp() {
-    // Variables de estado
+    // Variables de estado para los inputs
     var titulo by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
-    // Estado para el mensaje de retroalimentación
-    var mensaje by remember { mutableStateOf("Aún no hay una incidencia registrada") }
+
+    // Variables de estado para mostrar el reporte
+    var reporteRegistrado by remember { mutableStateOf(false) }
+    var tituloGuardado by remember { mutableStateOf("") }
+    var descripcionGuardada by remember { mutableStateOf("") }
+    var fechaHoraGuardada by remember { mutableStateOf("") }
+
+    // Controladores para ocultar el teclado y quitar el cursor
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
 
     Column(
         modifier = Modifier
@@ -68,7 +82,7 @@ fun RegistroIncidenciasApp() {
             textAlign = TextAlign.Center
         )
 
-        // Campo de Título de incidencia con colores oscuros
+        // Campo de Título
         OutlinedTextField(
             value = titulo,
             onValueChange = { titulo = it },
@@ -82,7 +96,7 @@ fun RegistroIncidenciasApp() {
             )
         )
 
-        // Campo de Descripción con colores oscuros
+        // Campo de Descripción
         OutlinedTextField(
             value = descripcion,
             onValueChange = { descripcion = it },
@@ -99,10 +113,24 @@ fun RegistroIncidenciasApp() {
         // Acción principal (Button)
         Button(
             onClick = {
-                mensaje = "Reporte preparado: $titulo"
-                // Limpieza de los campos de texto
-                titulo = ""
-                descripcion = ""
+                if (titulo.isNotBlank() || descripcion.isNotBlank()) {
+                    // Guardar los datos actuales en los estados del reporte
+                    tituloGuardado = titulo
+                    descripcionGuardada = descripcion
+                    reporteRegistrado = true
+
+                    // Generar fecha y hora actual
+                    val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
+                    fechaHoraGuardada = sdf.format(Date())
+
+                    // Limpiar los campos de texto
+                    titulo = ""
+                    descripcion = ""
+
+                    // Ocultar el teclado y quitar el enfoque del campo de texto
+                    keyboardController?.hide()
+                    focusManager.clearFocus()
+                }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -114,12 +142,46 @@ fun RegistroIncidenciasApp() {
         // Card para mostrar la retroalimentación
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = mensaje,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                if (!reporteRegistrado) {
+                    Text(
+                        text = "Aún no hay una incidencia registrada",
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    Text(
+                        text = "Reporte preparado:",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Título en negrita
+                    Text(
+                        text = tituloGuardado,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Descripción con texto normal
+                    Text(
+                        text = descripcionGuardada,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
+        }
+
+        // Fecha y hora bajo la tarjeta
+        if (reporteRegistrado) {
+            Text(
+                text = "Generado el: $fechaHoraGuardada",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
+                textAlign = TextAlign.End,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
