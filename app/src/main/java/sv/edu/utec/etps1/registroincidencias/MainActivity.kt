@@ -1,5 +1,10 @@
 package sv.edu.utec.etps1.registroincidencias
 
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,8 +18,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -23,14 +30,17 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -58,17 +68,17 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun RegistroIncidenciasApp() {
-    // Variables de estado para los inputs
-    var titulo by remember { mutableStateOf("") }
-    var descripcion by remember { mutableStateOf("") }
-    var prioridad by remember { mutableStateOf("Media") } // Interacción táctil: Prioridad seleccionada
+    // Variables de estado persistentes ante cambios de configuración (rotación de pantalla) con rememberSaveable
+    var titulo by rememberSaveable { mutableStateOf("") }
+    var descripcion by rememberSaveable { mutableStateOf("") }
+    var prioridad by rememberSaveable { mutableStateOf("Media") }
 
     // Variables de estado para mostrar el reporte guardado
-    var reporteRegistrado by remember { mutableStateOf(false) }
-    var tituloGuardado by remember { mutableStateOf("") }
-    var descripcionGuardada by remember { mutableStateOf("") }
-    var prioridadGuardada by remember { mutableStateOf("") }
-    var fechaHoraGuardada by remember { mutableStateOf("") }
+    var reporteRegistrado by rememberSaveable { mutableStateOf(false) }
+    var tituloGuardado by rememberSaveable { mutableStateOf("") }
+    var descripcionGuardada by rememberSaveable { mutableStateOf("") }
+    var prioridadGuardada by rememberSaveable { mutableStateOf("") }
+    var fechaHoraGuardada by rememberSaveable { mutableStateOf("") }
 
     // Controladores para ocultar el teclado y gestionar el foco
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -76,9 +86,46 @@ fun RegistroIncidenciasApp() {
 
     val opcionesPrioridad = listOf("Baja", "Media", "Alta")
 
+    // Estado del Scroll para permitir desplazamiento vertical al rotar la pantalla
+    val scrollState = rememberScrollState()
+
+    // --- INTEGRACIÓN DEL SENSOR (ACELERÓMETRO) ---
+    val context = LocalContext.current
+    val sensorManager = remember { context.getSystemService(Context.SENSOR_SERVICE) as SensorManager }
+    val accelerometer = remember { sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) }
+
+    // Variables de estado para los datos del sensor
+    var sensorDataX by remember { mutableStateOf(0f) }
+    var sensorDataY by remember { mutableStateOf(0f) }
+    var sensorDataZ by remember { mutableStateOf(0f) }
+    val sensorAvailable = accelerometer != null
+
+    DisposableEffect(accelerometer) {
+        if (accelerometer != null) {
+            val listener = object : SensorEventListener {
+                override fun onSensorChanged(event: SensorEvent) {
+                    sensorDataX = event.values[0]
+                    sensorDataY = event.values[1]
+                    sensorDataZ = event.values[2]
+                }
+
+                override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+            }
+            sensorManager.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
+
+            onDispose {
+                sensorManager.unregisterListener(listener)
+            }
+        } else {
+            onDispose { }
+        }
+    }
+    // --- FIN INTEGRACIÓN SENSOR ---
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -96,7 +143,7 @@ fun RegistroIncidenciasApp() {
             textAlign = TextAlign.Center
         )
 
-        // 1. Campo de Título con KeyboardOptions e ImeAction
+        // 1. Campo de Título
         OutlinedTextField(
             value = titulo,
             onValueChange = { titulo = it },
@@ -119,7 +166,7 @@ fun RegistroIncidenciasApp() {
             )
         )
 
-        // 2. Campo de Descripción con KeyboardOptions e ImeAction
+        // 2. Campo de Descripción
         OutlinedTextField(
             value = descripcion,
             onValueChange = { descripcion = it },
@@ -144,7 +191,7 @@ fun RegistroIncidenciasApp() {
             )
         )
 
-        // 3. Interacción Táctil: Selector de Prioridad mediante Cards Clicables
+        // 3. Interacción Táctil: Selector de Prioridad
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "Selecciona la prioridad (Toca una opción):",
@@ -162,7 +209,7 @@ fun RegistroIncidenciasApp() {
                     Card(
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { prioridad = opcion }, // Interacción táctil de alto nivel
+                            .clickable { prioridad = opcion },
                         border = BorderStroke(
                             width = if (esSeleccionado) 2.dp else 1.dp,
                             color = if (esSeleccionado) MaterialTheme.colorScheme.primary else Color.Gray
@@ -188,21 +235,17 @@ fun RegistroIncidenciasApp() {
         Button(
             onClick = {
                 if (titulo.isNotBlank() || descripcion.isNotBlank()) {
-                    // Guardar los datos en el reporte
                     tituloGuardado = titulo
                     descripcionGuardada = descripcion
                     prioridadGuardada = prioridad
                     reporteRegistrado = true
 
-                    // Generar fecha y hora
                     val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
                     fechaHoraGuardada = sdf.format(Date())
 
-                    // Limpiar campos de texto
                     titulo = ""
                     descripcion = ""
 
-                    // Ocultar teclado y quitar el enfoque
                     keyboardController?.hide()
                     focusManager.clearFocus()
                 }
@@ -264,6 +307,37 @@ fun RegistroIncidenciasApp() {
                 modifier = Modifier.fillMaxWidth()
             )
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // --- TARJETA DE VISUALIZACIÓN DEL SENSOR ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Estado del Movimiento (Acelerómetro)",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+
+                if (sensorAvailable) {
+                    Text("X: ${String.format("%.2f", sensorDataX)} m/s²", style = MaterialTheme.typography.bodySmall)
+                    Text("Y: ${String.format("%.2f", sensorDataY)} m/s²", style = MaterialTheme.typography.bodySmall)
+                    Text("Z: ${String.format("%.2f", sensorDataZ)} m/s²", style = MaterialTheme.typography.bodySmall)
+                } else {
+                    Text(
+                        text = "Acelerómetro no disponible en este dispositivo.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+        // --- FIN TARJETA DE VISUALIZACIÓN ---
     }
 }
 
