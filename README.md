@@ -1,59 +1,61 @@
 # RegistroIncidencias
 
 **Descripción:**
-RegistroIncidencias es una aplicación móvil intuitiva y rápida para la captura de reportes. A través de una interfaz limpia construida con Jetpack Compose, permite a los usuarios ingresar los detalles de un evento o problema y visualizar la confirmación del reporte de forma inmediata en la misma pantalla.
+RegistroIncidencias es una aplicación móvil intuitiva y rápida para la captura de reportes desarrollada en Android con Jetpack Compose. Permite a los usuarios ingresar los detalles de una incidencia, clasificar su prioridad y visualizar diagnósticos en tiempo real del estado del dispositivo a través de sus sensores integrados.
 
 ## Propósito
-Aplicación Android diseñada para el registro y gestión de incidencias, integrando lectura de sensores del dispositivo para enriquecer el contexto ambiental de los reportes.
+Aplicación Android diseñada para el registro y gestión de incidencias, integrando la lectura de múltiples sensores de hardware (acelerómetro y luz ambiental) para enriquecer el contexto ambiental y cinemático de los reportes.
 
 ## Herramientas utilizadas
-* Android Studio
-* Kotlin
-* Jetpack Compose
-* Git y GitHub
+- Android Studio
+- Kotlin
+- Jetpack Compose
+- Git y GitHub
 
 ## Estado actual
-* **Funciona:**
-  * Pantalla inicial interactiva para la captura de incidencias (título y descripción) con soporte de desplazamiento vertical (`verticalScroll`) ante cambios de orientación (rotación de pantalla).
-  * Persistencia de estado robusta frente a cambios de configuración utilizando `rememberSaveable`.
-  * **Teclado contextual e IME:** Configuración de `KeyboardOptions` con `capitalization = KeyboardCapitalization.Sentences`, además de acciones IME (`ImeAction.Next` e `ImeAction.Done`) para pasar automáticamente entre campos y ocultar el teclado.
-  * **Interacción táctil de prioridad:** Selección dinámica de prioridad (*Baja*, *Media*, *Alta*) mediante componentes `Card` clicables (`Modifier.clickable`) con retroalimentación visual inmediata (resaltado de borde y color de contenedor).
-  * **Lectura de Sensor (Acelerómetro):** Integración de `SensorManager` y `DisposableEffect` para capturar y mostrar en tiempo real los valores de aceleración en los ejes X, Y, Z, con manejo de disponibilidad del hardware.
-  * Retroalimentación visual dinámica en la interfaz al presionar el botón "Crear reporte", mostrando el título en negrita, la prioridad seleccionada y la descripción dentro de una tarjeta.
-  * Generación de marca de tiempo (fecha y hora exacta) generada automáticamente y mostrada en la parte inferior de la tarjeta del reporte.
-  * Personalización de contraste y colores en campos de entrada para mejorar la legibilidad.
-  * Optimizaciones de Experiencia de Usuario (UX): Limpieza automática de los campos de texto, ocultamiento del teclado virtual y remoción del cursor (foco) tras la preparación del reporte.
-* **Falta implementar:** Validación avanzada de formularios, lógica de "Shake" para atajos y persistencia avanzada en base de datos local o API.
+- **Funciona:**
+  - **Pantalla inicial interactiva y adaptativa:** Formulario de captura (título y descripción) con soporte de desplazamiento vertical (`verticalScroll`) ante rotaciones de pantalla.
+  - **Persistencia de estado:** Protección del estado frente a cambios de configuración utilizando `rememberSaveable`.
+  - **Teclado contextual e IME:** Configuración de `KeyboardOptions` con `capitalization = KeyboardCapitalization.Sentences` y acciones IME (`ImeAction.Next` e `ImeAction.Done`) para navegación secuencial fluida y ocultamiento automático del teclado.
+  - **Interacción táctil de prioridad:** Selector dinámico de prioridad (*Baja*, *Media*, *Alta*) mediante `Card`s clicables con retroalimentación visual inmediata.
+  - **Diagnóstico multisensor en tiempo real:** Lectura de acelerómetro (`Sensor.TYPE_ACCELEROMETER`) y sensor de luz ambiental (`Sensor.TYPE_LIGHT`) integrados con `SensorManager`.
+  - **Diseño de interpretación textual (sin números crudos):** Conversión automática de lecturas numéricas a métricas cualitativas (*"Dispositivo stable / En reposo"*, *"Movimiento detectado"*, *"Oscuridad total"*, *"Ambiente tenue / poca luz"*, *"Ambiente con mucha luz"*).
+  - **Gestión estricta del ciclo de vida:** Control de subscripción y liberación de los listeners mediante `DisposableEffect` y `onDispose` para evitar fugas de memoria y drenaje de batería.
+  - **Tarjeta de reporte:** Confirmación visual instantánea tras la creación de la incidencia con estampa temporal (fecha y hora exacta).
+- **Falta implementar:** Validación avanzada de campos obligatorios, lógica de "Shake" para accesos directos y persistencia persistente en base de datos local (Room) o API remota.
+
+---
 
 ## Registro de avances
-* **Semana 6:** Implementación de interfaz con estado reactivo, captura de texto en tiempo real, limpieza automática de campos y retroalimentación inmediata al usuario.
-* **Semana 7:** Mejoras de Experiencia de Usuario (UX) y presentación visual. Se integró la gestión de enfoque (ocultamiento automático de teclado y cursor al guardar), mejora tipográfica en la tarjeta de datos (título en negrita y descripción normal) y captura de la fecha y hora exacta del sistema.
-* **Semana 10:** Implementación de teclado contextual e interacción táctil. Integración de `KeyboardOptions` e `ImeAction` para navegación fluida de campos, y diseño de un selector táctil de prioridad (*Baja*, *Media*, *Alta*) utilizando `Modifier.clickable` con recomposición dinámica de interfaz.
-* **Semana 11:** Integración técnica inicial de sensores del dispositivo. Implementación del acelerómetro (`Sensor.TYPE_ACCELEROMETER`) mediante `SensorManager`, `SensorEventListener` y `DisposableEffect` para la gestión segura del ciclo de vida del sensor, mostrando lecturas en tiempo real (ejes X, Y, Z) con validación de disponibilidad y soporte de scroll para visualización adaptativa en modo horizontal.
+- **Semana 6:** Implementación de la interfaz con estado reactivo, captura de texto en tiempo real, limpieza automática de campos y retroalimentación inmediata.
+- **Semana 7:** Mejoras de UX y presentación visual. Gestión de enfoque (ocultamiento automático de teclado y cursor), jerarquía tipográfica y generación de fecha/hora exacta del sistema.
+- **Semana 10:** Implementación de teclado contextual e interacción táctil. Integración de `KeyboardOptions` e `ImeAction` para navegación entre campos y selector de prioridad (*Baja*, *Media*, *Alta*) con `Modifier.clickable`.
+- **Semana 11:** Integración técnica inicial del acelerómetro (`Sensor.TYPE_ACCELEROMETER`) mediante `SensorManager` y `DisposableEffect` para la gestión del ciclo de vida y visualización reactiva de los ejes X, Y, Z.
+- **Semana 12:** Integración del sensor de luz ambiental (`Sensor.TYPE_LIGHT`), implementación del *Diseño de Interpretación* (traducción de métricas a frases descriptivas cualitativas sin números crudos), optimización total de ciclo de vida (`onDispose`), perfeccionamiento de UX por teclado virtual y documentación de evidencias en dispositivo físico.
 
-## Detalles Técnicos de la Semana 10
+---
 
-### 1. Entrada de Texto Contextual (`KeyboardOptions` y `KeyboardActions`)
-* **Capitalización Automática:** Configuración de `KeyboardCapitalization.Sentences` para inicializar mayúsculas de manera automática en el inicio de frases.
-* **Flujo de Foco Secuencial:** El campo *Título* hace uso de `ImeAction.Next` junto con `focusManager.moveFocus(FocusDirection.Down)` para transferir el foco al campo *Descripción* desde la acción del teclado virtual.
-* **Cierre Programático:** El campo *Descripción* utiliza `ImeAction.Done` con `keyboardController?.hide()` y `focusManager.clearFocus()` para descartar el Soft Keyboard y limpiar la resalta del cursor en la UI.
+## Detalles Técnicos de la Semana 12 (Sensores)
 
-### 2. Selector Táctil de Prioridad (`Modifier.clickable`)
-* **Acciones Táctiles de Alto Nivel:** Se incorporó un componente selector compuesto por `Card`s individuales para definir la prioridad de la incidencia (*Baja*, *Media*, *Alta*).
-* **Recomposición por Mutación de Estado:** El evento de toque activa la mutación del estado `prioridad`. Esto dispara una recomposición puntual en Jetpack Compose, actualizando dinámicamente las propiedades visuales `border` y `containerColor` del componente seleccionado.
+### 1. Integración del Sensor de Luz Ambiental y Acelerómetro
+- **Acceso a Hardware:** Consulta e inicialización dual del acelerómetro (`Sensor.TYPE_ACCELEROMETER`) y sensor de luz (`Sensor.TYPE_LIGHT`) usando la API `SensorManager`.
+- **Diseño de Interpretación (Sin números crudos):** Los valores brutos de los sensores se procesan mediante lógica condicional (`when`) para ofrecer retroalimentación cualitativa comprensible:
+  - **Acelerómetro:** Evalúa la magnitud vectorial respecto a la gravedad ($9.81 m/s^2$) mostrando *"Dispositivo estable / En reposo"* o *"Movimiento detectado / Actividad cinemática"*.
+  - **Sensor de Luz:** Categoriza las lecturas en luxes en frases como *"Oscuridad total"*, *"Ambiente tenue / poca luz"*, *"Iluminación normal de oficina"* y *"Ambiente con mucha luz / alta intensidad"*.
 
-## Detalles Técnicos de la Semana 11 (Sensores)
+### 2. Control del Ciclo de Vida (`DisposableEffect` y `onDispose`)
+- **Gestión de Recursos de Hardware:** Cada sensor cuenta con su respectivo bloque `DisposableEffect`, asegurando el registro de los listeners al entrar la vista en la composición y garantizando su desregistro explícito (`sensorManager.unregisterListener()`) dentro del método `onDispose()` cuando la pantalla se destruye o el composable sale del árbol visual, previniendo fugas de memoria y optimizando la batería.
 
-### 1. Integración del Acelerómetro (`SensorManager` y `DisposableEffect`)
-* **Acceso al Hardware:** Se obtuvo una instancia del servicio del sistema `SensorManager` para consultar la disponibilidad del acelerómetro del dispositivo (`Sensor.TYPE_ACCELEROMETER`).
-* **Gestión Segura del Ciclo de Vida:** Uso de `DisposableEffect` para registrar el `SensorEventListener` únicamente cuando el componente está activo y desregistrarlo de forma automática (`onDispose`) evitando fugas de memoria o consumo innecesario de batería.
-* **Retroalimentación en Tiempo Real:** Actualización reactiva de las variables de estado para los ejes X, Y y Z, mostradas numéricamente en una tarjeta dedicada con control de disponibilidad (`sensorAvailable`).
+### 3. Navegación Fluida con Teclado Virtual (UX)
+- **Flujo de Entrada Continuo:** Uso combinado de `focusManager.moveFocus(FocusDirection.Down)` con `ImeAction.Next` en el campo *Título* para avanzar directamente a *Descripción*, y de `ImeAction.Done` con `focusManager.clearFocus()` y `keyboardController?.hide()` para ocultar el teclado al finalizar la redacción.
+
+---
 
 ## Cómo abrir el proyecto
 1. Clonar este repositorio localmente.
 2. Abrir Android Studio y seleccionar "Open".
-3. Navegar hasta la carpeta del proyecto y esperar a que Gradle synchronice.
+3. Seleccionar la carpeta del proyecto y esperar a que Gradle sincronice los archivos.
 
 ## Autor
-José Manuel Palacios Carrillo  
+**José Manuel Palacios Carrillo**  
 Universidad Tecnológica de El Salvador

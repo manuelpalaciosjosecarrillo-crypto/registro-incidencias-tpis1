@@ -54,6 +54,8 @@ import sv.edu.utec.etps1.registroincidencias.ui.theme.RegistroIncidenciasTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.sqrt
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,12 +91,11 @@ fun RegistroIncidenciasApp() {
     // Estado del Scroll para permitir desplazamiento vertical al rotar la pantalla
     val scrollState = rememberScrollState()
 
-    // --- INTEGRACIÓN DEL SENSOR (ACELERÓMETRO) ---
     val context = LocalContext.current
     val sensorManager = remember { context.getSystemService(Context.SENSOR_SERVICE) as SensorManager }
-    val accelerometer = remember { sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) }
 
-    // Variables de estado para los datos del sensor
+    // --- D. CONTROL DE CICLO Y REGISTRO/LIBERACIÓN: SENSOR ACELERÓMETRO ---
+    val accelerometer = remember { sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) }
     var sensorDataX by remember { mutableStateOf(0f) }
     var sensorDataY by remember { mutableStateOf(0f) }
     var sensorDataZ by remember { mutableStateOf(0f) }
@@ -108,11 +109,11 @@ fun RegistroIncidenciasApp() {
                     sensorDataY = event.values[1]
                     sensorDataZ = event.values[2]
                 }
-
                 override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
             }
             sensorManager.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
 
+            // Libera el recurso al salir de la composición (evita escucha indefinida)
             onDispose {
                 sensorManager.unregisterListener(listener)
             }
@@ -120,7 +121,51 @@ fun RegistroIncidenciasApp() {
             onDispose { }
         }
     }
-    // --- FIN INTEGRACIÓN SENSOR ---
+    // --- FIN CICLO ACELERÓMETRO ---
+
+    // --- D. CONTROL DE CICLO Y REGISTRO/LIBERACIÓN: SENSOR DE LUZ ---
+    val lightSensor = remember { sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT) }
+    var sensorDataLight by remember { mutableStateOf(0f) }
+    val lightSensorAvailable = lightSensor != null
+
+    DisposableEffect(lightSensor) {
+        if (lightSensor != null) {
+            val lightListener = object : SensorEventListener {
+                override fun onSensorChanged(event: SensorEvent) {
+                    sensorDataLight = event.values[0]
+                }
+                override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+            }
+            sensorManager.registerListener(lightListener, lightSensor, SensorManager.SENSOR_DELAY_NORMAL)
+
+            // Libera el recurso al salir de la composición
+            onDispose {
+                sensorManager.unregisterListener(lightListener)
+            }
+        } else {
+            onDispose { }
+        }
+    }
+    // --- FIN CICLO SENSOR DE LUZ ---
+
+    // --- C. DISEÑO DE INTERPRETACIÓN (SIN NÚMEROS CRUDOS) ---
+    // 1. Interpretación para el Acelerómetro
+    val magnitudAcel = sqrt((sensorDataX * sensorDataX + sensorDataY * sensorDataY + sensorDataZ * sensorDataZ).toDouble()).toFloat()
+    val interpretacionMovimiento = when {
+        !sensorAvailable -> "Sin lectura disponible"
+        abs(magnitudAcel - 9.81f) > 1.5f -> "Movimiento detectado / Actividad cinemática"
+        else -> "Dispositivo estable / En reposo"
+    }
+
+    // 2. Interpretación para el Sensor de Luz
+    val interpretacionLuz = when {
+        !lightSensorAvailable -> "Sin lectura disponible"
+        sensorDataLight == 0f -> "Oscuridad total"
+        sensorDataLight in 1f..50f -> "Ambiente tenue / poca luz"
+        sensorDataLight in 51f..500f -> "Iluminación normal de oficina"
+        else -> "Ambiente con mucha luz / alta intensidad"
+    }
+    // --- FIN INTERPRETACIÓN ---
 
     Column(
         modifier = Modifier
@@ -310,14 +355,14 @@ fun RegistroIncidenciasApp() {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // --- TARJETA DE VISUALIZACIÓN DEL SENSOR ---
+        // --- TARJETA 1: DIAGNÓSTICO DE MOVIMIENTO (ACELERÓMETRO) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "Estado del Movimiento (Acelerómetro)",
+                    text = "Diagnóstico del Dispositivo (Acelerómetro)",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -325,19 +370,48 @@ fun RegistroIncidenciasApp() {
                 Spacer(modifier = Modifier.height(4.dp))
 
                 if (sensorAvailable) {
-                    Text("X: ${String.format("%.2f", sensorDataX)} m/s²", style = MaterialTheme.typography.bodySmall)
-                    Text("Y: ${String.format("%.2f", sensorDataY)} m/s²", style = MaterialTheme.typography.bodySmall)
-                    Text("Z: ${String.format("%.2f", sensorDataZ)} m/s²", style = MaterialTheme.typography.bodySmall)
+                    Text("Interpretación: $interpretacionMovimiento", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                    Text("Valores crudos -> X: ${String.format("%.2f", sensorDataX)} | Y: ${String.format("%.2f", sensorDataY)} | Z: ${String.format("%.2f", sensorDataZ)}", style = MaterialTheme.typography.bodySmall, color = Color.DarkGray)
                 } else {
                     Text(
-                        text = "Acelerómetro no disponible en este dispositivo.",
+                        text = "Sin lectura disponible: Acelerómetro ausente.",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
         }
-        // --- FIN TARJETA DE VISUALIZACIÓN ---
+        // --- FIN TARJETA ACELERÓMETRO ---
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // --- TARJETA 2: DIAGNÓSTICO DE ENTORNO (SENSOR DE LUZ) ---
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Diagnóstico del Dispositivo (Sensor de Luz)",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+
+                if (lightSensorAvailable) {
+                    Text("Interpretación: $interpretacionLuz", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                    Text("Valor medido: ${String.format("%.2f", sensorDataLight)} lx", style = MaterialTheme.typography.bodySmall, color = Color.DarkGray)
+                } else {
+                    Text(
+                        text = "Sin lectura disponible: Sensor de luz ausente en este hardware/emulador.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+        // --- FIN TARJETA SENSOR DE LUZ ---
     }
 }
 
