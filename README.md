@@ -3,8 +3,12 @@
 **Descripción:**
 RegistroIncidencias es una aplicación móvil intuitiva y rápida para la captura de reportes desarrollada en Android con Jetpack Compose. Permite a los usuarios ingresar los detalles de una incidencia, clasificar su prioridad y visualizar diagnósticos en tiempo real del estado del dispositivo a través de sus sensores integrados.
 
+---
+
 ## Propósito
-Aplicación Android diseñada para el registro y gestión de incidencias, integrando la lectura de múltiples sensores de hardware (acelerómetro y luz ambiental) para enriquecer el contexto ambiental y cinemático de los reportes.
+Aplicación Android diseñada para el registro y gestión de incidencias, integrando la lectura de múltiples sensores de hardware (acelerómetro y luz ambiental) para enriquecer el contexto ambiental y cinemático de los reportes, respaldada por un control estricto del ciclo de vida de la actividad.
+
+---
 
 ## Herramientas utilizadas
 - Android Studio
@@ -12,17 +16,25 @@ Aplicación Android diseñada para el registro y gestión de incidencias, integr
 - Jetpack Compose
 - Git y GitHub
 
+---
+
 ## Estado actual
-- **Funciona:**
-  - **Pantalla inicial interactiva y adaptativa:** Formulario de captura (título y descripción) con soporte de desplazamiento vertical (`verticalScroll`) ante rotaciones de pantalla.
-  - **Persistencia de estado:** Protección del estado frente a cambios de configuración utilizando `rememberSaveable`.
-  - **Teclado contextual e IME:** Configuración de `KeyboardOptions` con `capitalization = KeyboardCapitalization.Sentences` y acciones IME (`ImeAction.Next` e `ImeAction.Done`) para navegación secuencial fluida y ocultamiento automático del teclado.
-  - **Interacción táctil de prioridad:** Selector dinámico de prioridad (*Baja*, *Media*, *Alta*) mediante `Card`s clicables con retroalimentación visual inmediata.
-  - **Diagnóstico multisensor en tiempo real:** Lectura de acelerómetro (`Sensor.TYPE_ACCELEROMETER`) y sensor de luz ambiental (`Sensor.TYPE_LIGHT`) integrados con `SensorManager`.
-  - **Diseño de interpretación textual (sin números crudos):** Conversión automática de lecturas numéricas a métricas cualitativas (*"Dispositivo stable / En reposo"*, *"Movimiento detectado"*, *"Oscuridad total"*, *"Ambiente tenue / poca luz"*, *"Ambiente con mucha luz"*).
-  - **Gestión estricta del ciclo de vida:** Control de subscripción y liberación de los listeners mediante `DisposableEffect` y `onDispose` para evitar fugas de memoria y drenaje de batería.
-  - **Tarjeta de reporte:** Confirmación visual instantánea tras la creación de la incidencia con estampa temporal (fecha y hora exacta).
-- **Falta implementar:** Validación avanzada de campos obligatorios, lógica de "Shake" para accesos directos y persistencia persistente en base de datos local (Room) o API remota.
+
+### Funciona:
+- **Pantalla inicial interactiva y adaptativa:** Formulario de captura (título y descripción) con soporte de desplazamiento vertical (`verticalScroll`) ante rotaciones de pantalla.
+- **Persistencia de estado:** Protección del estado del formulario frente a cambios de configuración utilizando `rememberSaveable`.
+- **Teclado contextual e IME:** Configuración de `KeyboardOptions` con `capitalization = KeyboardCapitalization.Sentences` y acciones IME (`ImeAction.Next` e `ImeAction.Done`) para navegación secuencial fluida y ocultamiento automático del teclado.
+- **Interacción táctil de prioridad:** Selector dinámico de prioridad (*Baja*, *Media*, *Alta*) mediante `Card`s clicables con retroalimentación visual inmediata.
+- **Diagnóstico multisensor en tiempo real:** Lectura de acelerómetro (`Sensor.TYPE_ACCELEROMETER`) y sensor de luz ambiental (`Sensor.TYPE_LIGHT`) integrados con `SensorManager`.
+- **Diseño de interpretación textual:** Conversión automática de lecturas numéricas a métricas cualitativas (*"Dispositivo estable / En reposo"*, *"Movimiento detectado"*, *"Oscuridad total"*, *"Ambiente tenue / poca luz"*, *"Ambiente con mucha luz"*).
+- **Gestión estricta del ciclo de vida:** Control de suscripción y liberación de los listeners mediante `DisposableEffect` y `onDispose` para evitar fugas de memoria y drenaje de batería.
+- **Instrumentación y trazabilidad de la Activity:** Monitoreo completo de los 6 callbacks del ciclo de vida (`onCreate`, `onStart`, `onResume`, `onPause`, `onStop`, `onDestroy`) con la etiqueta `TPIS1_LIFECYCLE` registrado y probado en Logcat sobre un dispositivo físico Nokia G20.
+- **Tarjeta de reporte:** Confirmación visual instantánea tras la creación de la incidencia con estampa temporal (fecha y hora exacta).
+
+### Falta implementar:
+- Validación avanzada de campos obligatorios.
+- Lógica de "Shake" para accesos directos.
+- Persistencia permanente en base de datos local (Room) o API remota.
 
 ---
 
@@ -32,6 +44,7 @@ Aplicación Android diseñada para el registro y gestión de incidencias, integr
 - **Semana 10:** Implementación de teclado contextual e interacción táctil. Integración de `KeyboardOptions` e `ImeAction` para navegación entre campos y selector de prioridad (*Baja*, *Media*, *Alta*) con `Modifier.clickable`.
 - **Semana 11:** Integración técnica inicial del acelerómetro (`Sensor.TYPE_ACCELEROMETER`) mediante `SensorManager` y `DisposableEffect` para la gestión del ciclo de vida y visualización reactiva de los ejes X, Y, Z.
 - **Semana 12:** Integración del sensor de luz ambiental (`Sensor.TYPE_LIGHT`), implementación del *Diseño de Interpretación* (traducción de métricas a frases descriptivas cualitativas sin números crudos), optimización total de ciclo de vida (`onDispose`), perfeccionamiento de UX por teclado virtual y documentación de evidencias en dispositivo físico.
+- **Semana 14:** Instrumentación completa de los callbacks del ciclo de vida en `MainActivity` usando la etiqueta `TPIS1_LIFECYCLE`. Validación experimental en dispositivo físico (Nokia G20) registrando en Logcat 4 escenarios reales: apertura inicial, minimizado/retorno (Home), recreación por rotación de pantalla y cierre por botón Atrás / eliminación en aplicaciones recientes.
 
 ---
 
@@ -51,10 +64,32 @@ Aplicación Android diseñada para el registro y gestión de incidencias, integr
 
 ---
 
+## Detalles Técnicos de la Semana 14 (Ciclo de Vida de MainActivity)
+
+### 1. Instrumentación con Logcat
+- **Monitoreo de Callbacks:** Sobrescritura e integración de logs de depuración mediante `Log.d(tag, msg)` en los 6 eventos clave de `MainActivity`:
+  - `onCreate()`: Inicialización de la actividad y la UI en Compose.
+  - `onStart()`: La actividad se vuelve visible en pantalla.
+  - `onResume()`: La actividad adquiere el foco y queda lista para la interacción del usuario.
+  - `onPause()`: La actividad pierde el foco de entrada.
+  - `onStop()`: La actividad deja de ser visible.
+  - `onDestroy()`: La instancia de la actividad se destruye completamente.
+- **Filtro Personalizado:** Uso del tag unificado `TPIS1_LIFECYCLE` en Logcat para aislar y auditar las transiciones de estado sin interferencia de logs del sistema.
+
+### 2. Verificación Experimental en Dispositivo Físico (Nokia G20)
+- **Escenario 1 (Apertura inicial):** Secuencia limpia `onCreate` $\rightarrow$ `onStart` $\rightarrow$ `onResume`.
+- **Escenario 2 (Ir a Home y reingresar):** Secuencia `onPause` $\rightarrow$ `onStop` al minimizar; `onStart` $\rightarrow$ `onResume` al reabrir sin requerir una nueva instanciación.
+- **Escenario 3 (Rotación de pantalla):** Cambio de configuración que destruye y recrea la actividad: `onPause` $\rightarrow$ `onStop` $\rightarrow$ `onDestroy` $\rightarrow$ `onCreate` $\rightarrow$ `onStart` $\rightarrow$ `onResume`. Preservación del estado del formulario validada con `rememberSaveable`.
+- **Escenario 4 (Cierre definitivo):** Uso de botón Atrás y deslizamiento en multitarea registrando `onPause` $\rightarrow$ `onStop` $\rightarrow$ `PROCESS ENDED`, confirmando la liberación total de la memoria RAM del sistema.
+
+---
+
 ## Cómo abrir el proyecto
 1. Clonar este repositorio localmente.
 2. Abrir Android Studio y seleccionar "Open".
 3. Seleccionar la carpeta del proyecto y esperar a que Gradle sincronice los archivos.
+
+---
 
 ## Autor
 **José Manuel Palacios Carrillo**  
