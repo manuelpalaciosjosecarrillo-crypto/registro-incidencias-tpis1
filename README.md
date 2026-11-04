@@ -85,7 +85,7 @@ Aplicación Android diseñada para el registro y gestión de incidencias, integr
 
 ---
 
-## Detalles Técnicos de la Semana 15 (Conservación de Estado ante Recreación)
+## Detalles Técnicos de la Semana 15 (Conservación de  Estado ante Recreación)
 
 ### 1. Comparativa Experimental: `remember` vs `rememberSaveable`
 - **Comportamiento con `remember`:** El estado de los campos del formulario (`titulo`, `descripcion`, `prioridad`) se almacena únicamente en la memoria de la composición activa. Al rotar el dispositivo, la destrucción y recreación de la `Activity` reinicia la composición, provocando la pérdida total de la información ingresada.
