@@ -45,6 +45,7 @@ Aplicación Android diseñada para el registro y gestión de incidencias, integr
 - **Semana 11:** Integración técnica inicial del acelerómetro (`Sensor.TYPE_ACCELEROMETER`) mediante `SensorManager` y `DisposableEffect` para la gestión del ciclo de vida y visualización reactiva de los ejes X, Y, Z.
 - **Semana 12:** Integración del sensor de luz ambiental (`Sensor.TYPE_LIGHT`), implementación del *Diseño de Interpretación* (traducción de métricas a frases descriptivas cualitativas sin números crudos), optimización total de ciclo de vida (`onDispose`), perfeccionamiento de UX por teclado virtual y documentación de evidencias en dispositivo físico.
 - **Semana 14:** Instrumentación completa de los callbacks del ciclo de vida en `MainActivity` usando la etiqueta `TPIS1_LIFECYCLE`. Validación experimental en dispositivo físico (Nokia G20) registrando en Logcat 4 escenarios reales: apertura inicial, minimizado/retorno (Home), recreación por rotación de pantalla y cierre por botón Atrás / eliminación en aplicaciones recientes.
+- **Semana 15:** Evaluación experimental de la conservación de estado de UI ante la recreación de la `Activity` por cambio de configuración (rotación de pantalla). Comparación práctica entre `remember` (pérdida de datos por estado volátil en composición) y `rememberSaveable` (persistencia a través del `SavedInstanceState` de Android).
 
 ---
 
@@ -81,6 +82,14 @@ Aplicación Android diseñada para el registro y gestión de incidencias, integr
 - **Escenario 2 (Ir a Home y reingresar):** Secuencia `onPause` $\rightarrow$ `onStop` al minimizar; `onStart` $\rightarrow$ `onResume` al reabrir sin requerir una nueva instanciación.
 - **Escenario 3 (Rotación de pantalla):** Cambio de configuración que destruye y recrea la actividad: `onPause` $\rightarrow$ `onStop` $\rightarrow$ `onDestroy` $\rightarrow$ `onCreate` $\rightarrow$ `onStart` $\rightarrow$ `onResume`. Preservación del estado del formulario validada con `rememberSaveable`.
 - **Escenario 4 (Cierre definitivo):** Uso de botón Atrás y deslizamiento en multitarea registrando `onPause` $\rightarrow$ `onStop` $\rightarrow$ `PROCESS ENDED`, confirmando la liberación total de la memoria RAM del sistema.
+
+---
+
+## Detalles Técnicos de la Semana 15 (Conservación de Estado ante Recreación)
+
+### 1. Comparativa Experimental: `remember` vs `rememberSaveable`
+- **Comportamiento con `remember`:** El estado de los campos del formulario (`titulo`, `descripcion`, `prioridad`) se almacena únicamente en la memoria de la composición activa. Al rotar el dispositivo, la destrucción y recreación de la `Activity` reinicia la composición, provocando la pérdida total de la información ingresada.
+- **Comportamiento con `rememberSaveable`:** Al declarar las variables con `rememberSaveable`, el estado se guarda y recupera automáticamente a través del mecanismo `SavedInstanceState` (mediante un `Bundle` gestionado por Android), garantizando que los datos ingresados en `OutlinedTextField` y en la selección de prioridad se preserven de forma continua ante cambios de configuración.
 
 ---
 
