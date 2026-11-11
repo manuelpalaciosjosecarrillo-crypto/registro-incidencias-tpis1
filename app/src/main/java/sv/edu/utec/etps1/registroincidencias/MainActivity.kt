@@ -51,12 +51,43 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import sv.edu.utec.etps1.registroincidencias.ui.theme.RegistroIncidenciasTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.sqrt
+
+// --- VIEWMODEL PARA GESTIONAR EL ESTADO DEL FORMULARIO ---
+class IncidenciaViewModel : ViewModel() {
+    var titulo by mutableStateOf("")
+        private set
+
+    var descripcion by mutableStateOf("")
+        private set
+
+    var prioridad by mutableStateOf("Media")
+        private set
+
+    fun actualizarTitulo(valor: String) {
+        titulo = valor
+    }
+
+    fun actualizarDescripcion(valor: String) {
+        descripcion = valor
+    }
+
+    fun actualizarPrioridad(valor: String) {
+        prioridad = valor
+    }
+
+    fun limpiarCampos() {
+        titulo = ""
+        descripcion = ""
+    }
+}
 
 class MainActivity : ComponentActivity() {
     private val tag = "TPIS1_LIFECYCLE"
@@ -98,13 +129,8 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun RegistroIncidenciasApp() {
-    // Variables de estado persistentes ante cambios de configuración (rotación de pantalla) con rememberSaveable
-    var titulo by rememberSaveable { mutableStateOf("") }
-    var descripcion by rememberSaveable { mutableStateOf("") }
-    var prioridad by rememberSaveable { mutableStateOf("Media") }
-
-    // Variables de estado para mostrar el reporte guardado
+fun RegistroIncidenciasApp(vm: IncidenciaViewModel = viewModel()) {
+    // Variables de estado para la vista final del reporte registrado
     var reporteRegistrado by rememberSaveable { mutableStateOf(false) }
     var tituloGuardado by rememberSaveable { mutableStateOf("") }
     var descripcionGuardada by rememberSaveable { mutableStateOf("") }
@@ -123,7 +149,7 @@ fun RegistroIncidenciasApp() {
     val context = LocalContext.current
     val sensorManager = remember { context.getSystemService(Context.SENSOR_SERVICE) as SensorManager }
 
-    // --- D. CONTROL DE CICLO Y REGISTRO/LIBERACIÓN: SENSOR ACELERÓMETRO ---
+    // --- CONTROL DE CICLO Y REGISTRO/LIBERACIÓN: SENSOR ACELERÓMETRO ---
     val accelerometer = remember { sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) }
     var sensorDataX by remember { mutableStateOf(0f) }
     var sensorDataY by remember { mutableStateOf(0f) }
@@ -142,7 +168,6 @@ fun RegistroIncidenciasApp() {
             }
             sensorManager.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
 
-            // Libera el recurso al salir de la composición (evita escucha indefinida)
             onDispose {
                 sensorManager.unregisterListener(listener)
             }
@@ -150,9 +175,8 @@ fun RegistroIncidenciasApp() {
             onDispose { }
         }
     }
-    // --- FIN CICLO ACELERÓMETRO ---
 
-    // --- D. CONTROL DE CICLO Y REGISTRO/LIBERACIÓN: SENSOR DE LUZ ---
+    // --- CONTROL DE CICLO Y REGISTRO/LIBERACIÓN: SENSOR DE LUZ ---
     val lightSensor = remember { sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT) }
     var sensorDataLight by remember { mutableStateOf(0f) }
     val lightSensorAvailable = lightSensor != null
@@ -167,7 +191,6 @@ fun RegistroIncidenciasApp() {
             }
             sensorManager.registerListener(lightListener, lightSensor, SensorManager.SENSOR_DELAY_NORMAL)
 
-            // Libera el recurso al salir de la composición
             onDispose {
                 sensorManager.unregisterListener(lightListener)
             }
@@ -175,10 +198,8 @@ fun RegistroIncidenciasApp() {
             onDispose { }
         }
     }
-    // --- FIN CICLO SENSOR DE LUZ ---
 
-    // --- C. DISEÑO DE INTERPRETACIÓN (SIN NÚMEROS CRUDOS) ---
-    // 1. Interpretación para el Acelerómetro
+    // --- DISEÑO DE INTERPRETACIÓN ---
     val magnitudAcel = sqrt((sensorDataX * sensorDataX + sensorDataY * sensorDataY + sensorDataZ * sensorDataZ).toDouble()).toFloat()
     val interpretacionMovimiento = when {
         !sensorAvailable -> "Sin lectura disponible"
@@ -186,7 +207,6 @@ fun RegistroIncidenciasApp() {
         else -> "Dispositivo estable / En reposo"
     }
 
-    // 2. Interpretación para el Sensor de Luz
     val interpretacionLuz = when {
         !lightSensorAvailable -> "Sin lectura disponible"
         sensorDataLight == 0f -> "Oscuridad total"
@@ -194,7 +214,6 @@ fun RegistroIncidenciasApp() {
         sensorDataLight in 51f..500f -> "Iluminación normal de oficina"
         else -> "Ambiente con mucha luz / alta intensidad"
     }
-    // --- FIN INTERPRETACIÓN ---
 
     Column(
         modifier = Modifier
@@ -204,23 +223,21 @@ fun RegistroIncidenciasApp() {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Título principal
         Text(
             text = "Registro de incidencia",
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
 
-        // Instrucción breve
         Text(
             text = "Completa los datos básicos del reporte.",
             textAlign = TextAlign.Center
         )
 
-        // 1. Campo de Título
+        // 1. Campo de Título desde ViewModel
         OutlinedTextField(
-            value = titulo,
-            onValueChange = { titulo = it },
+            value = vm.titulo,
+            onValueChange = vm::actualizarTitulo,
             label = { Text("Título") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
@@ -240,10 +257,10 @@ fun RegistroIncidenciasApp() {
             )
         )
 
-        // 2. Campo de Descripción
+        // 2. Campo de Descripción desde ViewModel
         OutlinedTextField(
-            value = descripcion,
-            onValueChange = { descripcion = it },
+            value = vm.descripcion,
+            onValueChange = vm::actualizarDescripcion,
             label = { Text("Descripción") },
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(
@@ -265,7 +282,7 @@ fun RegistroIncidenciasApp() {
             )
         )
 
-        // 3. Interacción Táctil: Selector de Prioridad
+        // 3. Selección de Prioridad desde ViewModel
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "Selecciona la prioridad (Toca una opción):",
@@ -279,11 +296,11 @@ fun RegistroIncidenciasApp() {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 opcionesPrioridad.forEach { opcion ->
-                    val esSeleccionado = prioridad == opcion
+                    val esSeleccionado = vm.prioridad == opcion
                     Card(
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { prioridad = opcion },
+                            .clickable { vm.actualizarPrioridad(opcion) },
                         border = BorderStroke(
                             width = if (esSeleccionado) 2.dp else 1.dp,
                             color = if (esSeleccionado) MaterialTheme.colorScheme.primary else Color.Gray
@@ -305,20 +322,19 @@ fun RegistroIncidenciasApp() {
             }
         }
 
-        // Acción principal (Button)
+        // Evento de creación consumiendo datos del ViewModel
         Button(
             onClick = {
-                if (titulo.isNotBlank() || descripcion.isNotBlank()) {
-                    tituloGuardado = titulo
-                    descripcionGuardada = descripcion
-                    prioridadGuardada = prioridad
+                if (vm.titulo.isNotBlank() || vm.descripcion.isNotBlank()) {
+                    tituloGuardado = vm.titulo
+                    descripcionGuardada = vm.descripcion
+                    prioridadGuardada = vm.prioridad
                     reporteRegistrado = true
 
                     val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
                     fechaHoraGuardada = sdf.format(Date())
 
-                    titulo = ""
-                    descripcion = ""
+                    vm.limpiarCampos()
 
                     keyboardController?.hide()
                     focusManager.clearFocus()
@@ -331,7 +347,6 @@ fun RegistroIncidenciasApp() {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Card para mostrar la retroalimentación
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 if (!reporteRegistrado) {
@@ -371,7 +386,6 @@ fun RegistroIncidenciasApp() {
             }
         }
 
-        // Fecha y hora bajo la tarjeta
         if (reporteRegistrado) {
             Text(
                 text = "Generado el: $fechaHoraGuardada",
@@ -384,7 +398,6 @@ fun RegistroIncidenciasApp() {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // --- TARJETA 1: DIAGNÓSTICO DE MOVIMIENTO (ACELERÓMETRO) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -410,11 +423,9 @@ fun RegistroIncidenciasApp() {
                 }
             }
         }
-        // --- FIN TARJETA ACELERÓMETRO ---
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // --- TARJETA 2: DIAGNÓSTICO DE ENTORNO (SENSOR DE LUZ) ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -440,7 +451,6 @@ fun RegistroIncidenciasApp() {
                 }
             }
         }
-        // --- FIN TARJETA SENSOR DE LUZ ---
     }
 }
 

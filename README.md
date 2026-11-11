@@ -6,7 +6,7 @@ RegistroIncidencias es una aplicación móvil intuitiva y rápida para la captur
 ---
 
 ## Propósito
-Aplicación Android diseñada para el registro y gestión de incidencias, integrando la lectura de múltiples sensores de hardware (acelerómetro y luz ambiental) para enriquecer el contexto ambiental y cinemático de los reportes, respaldada por un control estricto del ciclo de vida de la actividad.
+Aplicación Android diseñada para el registro y gestión de incidencias, integrando la lectura de múltiples sensores de hardware (acelerómetro y luz ambiental) para enriquecer el contexto ambiental y cinemático de los reportes, respaldada por un control estricto del ciclo de vida de la actividad y la separación de responsabilidades mediante ViewModel.
 
 ---
 
@@ -14,6 +14,7 @@ Aplicación Android diseñada para el registro y gestión de incidencias, integr
 - Android Studio
 - Kotlin
 - Jetpack Compose
+- Architecture Components (ViewModel)
 - Git y GitHub
 
 ---
@@ -22,9 +23,10 @@ Aplicación Android diseñada para el registro y gestión de incidencias, integr
 
 ### Funciona:
 - **Pantalla inicial interactiva y adaptativa:** Formulario de captura (título y descripción) con soporte de desplazamiento vertical (`verticalScroll`) ante rotaciones de pantalla.
-- **Persistencia de estado:** Protección del estado del formulario frente a cambios de configuración utilizando `rememberSaveable`.
+- **Gestión de estado con ViewModel:** Desacoplamiento de la lógica de presentación del formulario respecto a la UI mediante `IncidenciaViewModel`, aplicando Flujo de Datos Unidireccional (UDF).
+- **Persistencia de estado ante rotación:** Conservación intacta de la información ingresada durante los cambios de configuración del dispositivo gracias al ciclo de vida prolongado del `ViewModel`.
 - **Teclado contextual e IME:** Configuración de `KeyboardOptions` con `capitalization = KeyboardCapitalization.Sentences` y acciones IME (`ImeAction.Next` e `ImeAction.Done`) para navegación secuencial fluida y ocultamiento automático del teclado.
-- **Interacción táctil de prioridad:** Selector dinámico de prioridad (*Baja*, *Media*, *Alta*) mediante `Card`s clicables con retroalimentación visual inmediata.
+- **Interacción táctil de prioridad:** Selector dinámico de prioridad (*Baja*, *Media*, *Alta*) gestionado por el ViewModel con retroalimentación visual inmediata.
 - **Diagnóstico multisensor en tiempo real:** Lectura de acelerómetro (`Sensor.TYPE_ACCELEROMETER`) y sensor de luz ambiental (`Sensor.TYPE_LIGHT`) integrados con `SensorManager`.
 - **Diseño de interpretación textual:** Conversión automática de lecturas numéricas a métricas cualitativas (*"Dispositivo estable / En reposo"*, *"Movimiento detectado"*, *"Oscuridad total"*, *"Ambiente tenue / poca luz"*, *"Ambiente con mucha luz"*).
 - **Gestión estricta del ciclo de vida:** Control de suscripción y liberación de los listeners mediante `DisposableEffect` y `onDispose` para evitar fugas de memoria y drenaje de batería.
@@ -46,38 +48,39 @@ Aplicación Android diseñada para el registro y gestión de incidencias, integr
 - **Semana 12:** Integración del sensor de luz ambiental (`Sensor.TYPE_LIGHT`), implementación del *Diseño de Interpretación* (traducción de métricas a frases descriptivas cualitativas sin números crudos), optimización total de ciclo de vida (`onDispose`), perfeccionamiento de UX por teclado virtual y documentación de evidencias en dispositivo físico.
 - **Semana 14:** Instrumentación completa de los callbacks del ciclo de vida en `MainActivity` usando la etiqueta `TPIS1_LIFECYCLE`. Validación experimental en dispositivo físico (Nokia G20) registrando en Logcat 4 escenarios reales: apertura inicial, minimizado/retorno (Home), recreación por rotación de pantalla y cierre por botón Atrás / eliminación en aplicaciones recientes.
 - **Semana 15:** Evaluación experimental de la conservación de estado de UI ante la recreación de la `Activity` por cambio de configuración (rotación de pantalla). Comparación práctica entre `remember` (pérdida de datos por estado volátil en composición) y `rememberSaveable` (persistencia a través del `SavedInstanceState` de Android).
+- **Semana 16:** Refactorización de la pantalla `RegistroIncidencias` para separar la gestión de estado de la interfaz de usuario mediante `IncidenciaViewModel`. Implementación de Flujo de Datos Unidireccional (UDF) con encapsulamiento estricto (`private set`) y comprobación de conservación de datos ante rotaciones de pantalla en dispositivo físico (Nokia G20).
 
 ---
 
 ## Detalles Técnicos de la Semana 12 (Sensores)
 
-### 1. Integración del Sensor de Luz Ambiental y Acelerómetro
+1. ### Integración del Sensor de Luz Ambiental y Acelerómetro
 - **Acceso a Hardware:** Consulta e inicialización dual del acelerómetro (`Sensor.TYPE_ACCELEROMETER`) y sensor de luz (`Sensor.TYPE_LIGHT`) usando la API `SensorManager`.
 - **Diseño de Interpretación (Sin números crudos):** Los valores brutos de los sensores se procesan mediante lógica condicional (`when`) para ofrecer retroalimentación cualitativa comprensible:
-  - **Acelerómetro:** Evalúa la magnitud vectorial respecto a la gravedad ($9.81 m/s^2$) mostrando *"Dispositivo estable / En reposo"* o *"Movimiento detectado / Actividad cinemática"*.
-  - **Sensor de Luz:** Categoriza las lecturas en luxes en frases como *"Oscuridad total"*, *"Ambiente tenue / poca luz"*, *"Iluminación normal de oficina"* y *"Ambiente con mucha luz / alta intensidad"*.
+    - **Acelerómetro:** Evalúa la magnitud vectorial respecto a la gravedad ($9.81 m/s^2$) mostrando *"Dispositivo estable / En reposo"* o *"Movimiento detectado / Actividad cinemática"*.
+    - **Sensor de Luz:** Categoriza las lecturas en luxes en frases como *"Oscuridad total"*, *"Ambiente tenue / poca luz"*, *"Iluminación normal de oficina"* y *"Ambiente con mucha luz / alta intensidad"*.
 
-### 2. Control del Ciclo de Vida (`DisposableEffect` y `onDispose`)
+2. ### Control del Ciclo de Vida (`DisposableEffect` y `onDispose`)
 - **Gestión de Recursos de Hardware:** Cada sensor cuenta con su respectivo bloque `DisposableEffect`, asegurando el registro de los listeners al entrar la vista en la composición y garantizando su desregistro explícito (`sensorManager.unregisterListener()`) dentro del método `onDispose()` cuando la pantalla se destruye o el composable sale del árbol visual, previniendo fugas de memoria y optimizando la batería.
 
-### 3. Navegación Fluida con Teclado Virtual (UX)
+3. ### Navegación Fluida con Teclado Virtual (UX)
 - **Flujo de Entrada Continuo:** Uso combinado de `focusManager.moveFocus(FocusDirection.Down)` con `ImeAction.Next` en el campo *Título* para avanzar directamente a *Descripción*, y de `ImeAction.Done` con `focusManager.clearFocus()` y `keyboardController?.hide()` para ocultar el teclado al finalizar la redacción.
 
 ---
 
 ## Detalles Técnicos de la Semana 14 (Ciclo de Vida de MainActivity)
 
-### 1. Instrumentación con Logcat
+1. ### Instrumentación con Logcat
 - **Monitoreo de Callbacks:** Sobrescritura e integración de logs de depuración mediante `Log.d(tag, msg)` en los 6 eventos clave de `MainActivity`:
-  - `onCreate()`: Inicialización de la actividad y la UI en Compose.
-  - `onStart()`: La actividad se vuelve visible en pantalla.
-  - `onResume()`: La actividad adquiere el foco y queda lista para la interacción del usuario.
-  - `onPause()`: La actividad pierde el foco de entrada.
-  - `onStop()`: La actividad deja de ser visible.
-  - `onDestroy()`: La instancia de la actividad se destruye completamente.
+    - `onCreate()`: Inicialización de la actividad y la UI en Compose.
+    - `onStart()`: La actividad se vuelve visible en pantalla.
+    - `onResume()`: La actividad adquiere el foco y queda lista para la interacción del usuario.
+    - `onPause()`: La actividad pierde el foco de entrada.
+    - `onStop()`: La actividad deja de ser visible.
+    - `onDestroy()`: La instancia de la actividad se destruye completamente.
 - **Filtro Personalizado:** Uso del tag unificado `TPIS1_LIFECYCLE` en Logcat para aislar y auditar las transiciones de estado sin interferencia de logs del sistema.
 
-### 2. Verificación Experimental en Dispositivo Físico (Nokia G20)
+2. ### Verificación Experimental en Dispositivo Físico (Nokia G20)
 - **Escenario 1 (Apertura inicial):** Secuencia limpia `onCreate` $\rightarrow$ `onStart` $\rightarrow$ `onResume`.
 - **Escenario 2 (Ir a Home y reingresar):** Secuencia `onPause` $\rightarrow$ `onStop` al minimizar; `onStart` $\rightarrow$ `onResume` al reabrir sin requerir una nueva instanciación.
 - **Escenario 3 (Rotación de pantalla):** Cambio de configuración que destruye y recrea la actividad: `onPause` $\rightarrow$ `onStop` $\rightarrow$ `onDestroy` $\rightarrow$ `onCreate` $\rightarrow$ `onStart` $\rightarrow$ `onResume`. Preservación del estado del formulario validada con `rememberSaveable`.
@@ -85,11 +88,26 @@ Aplicación Android diseñada para el registro y gestión de incidencias, integr
 
 ---
 
-## Detalles Técnicos de la Semana 15 (Conservación de  Estado ante Recreación)
+## Detalles Técnicos de la Semana 15 (Conservación de Estado ante Recreación)
 
-### 1. Comparativa Experimental: `remember` vs `rememberSaveable`
+1. ### Comparativa Experimental: `remember` vs `rememberSaveable`
 - **Comportamiento con `remember`:** El estado de los campos del formulario (`titulo`, `descripcion`, `prioridad`) se almacena únicamente en la memoria de la composición activa. Al rotar el dispositivo, la destrucción y recreación de la `Activity` reinicia la composición, provocando la pérdida total de la información ingresada.
 - **Comportamiento con `rememberSaveable`:** Al declarar las variables con `rememberSaveable`, el estado se guarda y recupera automáticamente a través del mecanismo `SavedInstanceState` (mediante un `Bundle` gestionado por Android), garantizando que los datos ingresados en `OutlinedTextField` y en la selección de prioridad se preserven de forma continua ante cambios de configuración.
+
+---
+
+## Detalles Técnicos de la Semana 16 (ViewModel y Arquitectura de Estado)
+
+1. ### Desacoplamiento de Estado con `IncidenciaViewModel`
+- **Contenedor de Estado:** Creación de la clase `IncidenciaViewModel : ViewModel()` para almacenar los datos del formulario (`titulo`, `descripcion`, `prioridad`).
+- **Encapsulamiento de Modificación:** Se utilizó la sintaxis `var campo by mutableStateOf(...) private set` para garantizar que la interfaz gráfica únicamente pueda leer el estado, prohibiendo modificaciones directas fuera de los métodos autorizados.
+
+2. ### Flujo de Datos Unidireccional (UDF - Unidirectional Data Flow)
+- **Consumo de Estado:** La función Composable `RegistroIncidenciasApp` recibe el ViewModel inyectado (`vm: IncidenciaViewModel = viewModel()`) y vincula sus componentes visuales a los valores del ViewModel (`value = vm.titulo`, `value = vm.descripcion`).
+- **Despacho de Eventos:** Las acciones del usuario (escritura en `OutlinedTextField` o selección de tarjeta de prioridad) envían eventos hacia el ViewModel mediante referencias a funciones (`onValueChange = vm::actualizarTitulo`, `vm.actualizarPrioridad(...)`), desencadenando la actualización del estado y la subsecuente recomposición visual de la interfaz.
+
+3. ### Preservación del Estado ante Cambios de Configuración
+- **Ciclo de Vida Retenido:** Al girar el dispositivo físico (Nokia G20), la `Activity` se destruye y vuelve a crear, pero el `ViewModel` permanece retenido en la memoria RAM del sistema. Al volver a crearse la UI, el Composable reconecta automáticamente a la misma instancia existente de `IncidenciaViewModel`, manteniendo los datos del formulario sin depender de la serialización manual en `Bundle` o `SavedInstanceState`.
 
 ---
 
